@@ -1,0 +1,2127 @@
+<!DOCTYPE html> 
+<html manifest="marlow.appcache">
+	<head>
+  <meta charset="UTF-8">	
+	<title>Marlow</title> 
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="images/apple-touch-icon-114x114-precomposed.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="images/apple-touch-icon-72x72-precomposed.png" />
+<link rel="apple-touch-icon-precomposed" href="images/apple-touch-icon-57x57-precomposed.png" />
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+	
+<!-- iPhone/iPod Touch Portrait – 320 x 480 (standard resolution) -->
+<link rel="apple-touch-startup-image" href="splash_320x480.png" media="screen and (max-device-width: 320px) and (-webkit-min-device-pixel-ratio: 1)" />
+<!-- iPhone/iPod Touch (high-resolution) Portrait – 640 x 920 pixels -->
+<link rel="apple-touch-startup-image" href="splash_640x960.png" media="screen and (max-device-width: 320px) and (-webkit-min-device-pixel-ratio: 2)" />
+<!-- iPad Landscape 1024x748 -->
+<link rel="apple-touch-startup-image" sizes="1024x748" href="splash_1024x748.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation:landscape) and (-webkit-min-device-pixel-ratio: 1)" />
+<!-- iPad Portrait 768x1004 -->
+<link rel="apple-touch-startup-image" sizes="768x1004" href="splash_768x1004.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation:portrait) and (-webkit-min-device-pixel-ratio: 1)"/>
+	
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.1.1/jquery.mobile-1.1.1.min.css" />
+<style>
+    img {max-width: 100%;}
+	.gps-flip-switch .ui-slider-switch { width: 8em }
+	.ui-header {position:fixed;z-index:10;top:0;width:100%}
+	.ui-content {padding:45px 15px}
+	.ui-footer {position:fixed;z-index:10;bottom:0;width:100%}
+	.ui-mobile-viewport-transitioning .ui-header-fixed,
+	.ui-mobile-viewport-transitioning .ui-footer-fixed { visibility: hidden; }
+    .ui-listview li { -webkit-transform: translateZ(0);  } 
+</style>
+
+<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script src="http://code.jquery.com/mobile/1.1.1/jquery.mobile-1.1.1.min.js"></script>
+<script type="text/javascript" src="js/touchSwipe.js"></script>
+
+<script>	
+//	
+	var xStart, yStart = 0;
+document.getElementById("route").addEventListener('touchstart',function(e) {
+    xStart = e.touches[0].screenX;
+    yStart = e.touches[0].screenY;
+});
+
+document.getElementById("route").addEventListener('touchmove',function(e) {
+    var xMovement = Math.abs(e.touches[0].screenX - xStart);
+    var yMovement = Math.abs(e.touches[0].screenY - yStart);
+    if((yMovement * 3) > xMovement) {
+        e.preventDefault();
+    }
+});
+</script>
+<script>
+//set up a variable to show if the browser is cabable of css fixed headers
+//for now just checking for ios 4
+var browser=navigator.appVersion;
+	var fixedheadercapable=true;
+	var n=browser.indexOf("OS 4");
+	if (n>0){
+	fixedheadercapable=false;
+	}
+</script>
+<script>
+			//Assign handlers to the simple direction handlers.
+			var swipeOptions=
+			{
+				swipe:swipe,
+				threshold:75
+			}
+			$(function()
+			{			
+				//Enable swiping...
+				$("#map").swipe( swipeOptions );
+			});
+		
+			//Swipe handlers.
+			//The only arg passed is the original touch event object			
+			function swipe(event, direction)
+			{
+				pt=osMap.getCenter();
+				east=pt.getEasting();
+				north=pt.getNorthing();
+				var z=200*(13-(osMap.zoom));
+				if (direction=="down")
+				{osMap.setCenter(new OpenSpace.MapPoint(east,north+z));	}
+				else if (direction=="up")
+				{osMap.setCenter(new OpenSpace.MapPoint(east,north-z));	}
+				else if (direction=="left")
+				{osMap.setCenter(new OpenSpace.MapPoint(east+z,north));	}
+				else if (direction=="right")
+				{osMap.setCenter(new OpenSpace.MapPoint(east-z,north));	}			
+			}
+</script>
+
+<script type="text/javascript">
+function changescriptpage(mypageid){
+	elementid="#script"+mypageid;
+	$(elementid).bind('swipeleft', function (event, ui) {
+	elementid=$.mobile.activePage.attr("id");
+	elementid=elementid.replace("script",""); 
+	nextid="#script"+(parseInt(elementid)+1);
+	$.mobile.changePage(nextid, { transition: "slide"}) ;
+	});
+
+	$(elementid).bind('swiperight', function (event, ui) {
+	elementid=$.mobile.activePage.attr("id");
+	elementid=elementid.replace("script",""); 
+	nextid="#script"+(parseInt(elementid)-1);
+	$.mobile.changePage(nextid, { transition: "slide",	reverse: true});
+	});
+}
+function changedirectionspage(mypageid){
+	elementid="#directions"+mypageid;
+
+	$(elementid).bind('swipeleft', function (event, ui) {
+	elementid=$.mobile.activePage.attr("id");
+	elementid=elementid.replace("directions",""); 
+	nextid="#directions"+(parseInt(elementid)+1);
+	$.mobile.changePage(nextid, { transition: "slide"}) ;
+	});
+
+	$(elementid).bind('swiperight', function (event, ui) {
+	elementid=$.mobile.activePage.attr("id");
+	elementid=elementid.replace("directions",""); 
+	nextid="#directions"+(parseInt(elementid)-1);
+	$.mobile.changePage(nextid, { transition: "slide",	reverse: true});
+	});
+}
+function addscriptfooter(p){
+	if (fixedheadercapable==true){
+	var html='<div data-role="footer" data-tap-toggle="false">';	
+	}
+	else{
+	var html='<div data-tap-toggle="false">';	
+	}
+	html+='<div data-role="navbar" data-tap-toggle="false">';
+	html+='<ul><li><a href="#script'+(p-1)+'" data-transition="slide" data-direction="reverse" >&#60;</a></li>';
+	html+='<li><a href="#route" data-transition="slide" data-direction="reverse">Map</a></li>';
+	html+='<li><a href="#directions'+p+'" data-transition="slide">Directions</a></li>';
+	html+='<li><a href="#script'+(p+1)+'" data-transition="slide" >&#62;</a></li>';
+	html+='</ul></div></div>';
+	if (fixedheadercapable==true){		
+	var s = "script"+p;
+	document.getElementById(s).innerHTML+=html;
+	}
+	else{
+	var s = "scriptcontent"+p;
+	html+=document.getElementById(s).innerHTML;
+	document.getElementById(s).innerHTML=html;
+	}
+ } 
+function adddirectionsfooter(p){
+	if (fixedheadercapable==true){
+	var html='<div data-role="footer" data-tap-toggle="false">';	
+	}
+	else{
+	var html='<div data-tap-toggle="false">';	
+	}
+	html+='<div data-role="navbar" data-tap-toggle="false">';
+	html+='<ul><li><a href="#directions'+(p-1)+'" data-transition="slide" data-direction="reverse" >&#60;</a></li>';
+	html+='<li><a href="#route" data-transition="slide" data-direction="reverse">Map</a></li>';
+	html+='<li><a href="#script'+p+'" data-transition="slide">Text</a></li>';
+	html+='<li><a href="#directions'+(p+1)+'" data-transition="slide" >&#62;</a></li>';
+	html+='</ul></div></div>';
+	if (fixedheadercapable==true){		
+	var s = "directions"+p;
+	document.getElementById(s).innerHTML+=html;
+	}
+	else{
+	var s = "directionscontent"+p;
+	html+=document.getElementById(s).innerHTML;
+	document.getElementById(s).innerHTML=html;
+	}	
+ }
+</script>
+	
+<script>
+
+$(window).bind( 'orientationchange', function(e){
+   if ($.event.special.orientationchange.orientation() == "portrait") {
+			var html='<img src="images/background_640x960.jpg" width="100%" > ';
+    } else {
+	var html='<img src="images/background_960x640.jpg" width="100%" > ';
+    }
+		  document.getElementById("frontpage").innerHTML=html;	
+		  setmymapheight();	
+		recentremap();
+});
+
+function sethomepageimageorintation()
+{
+	if(window.innerHeight > window.innerWidth){
+		var html='<img src="images/background_640x960.jpg" width="100%" > ';
+	}
+	else{
+		var html='<img src="images/background_960x640.jpg" width="100%" > ';
+	}
+		  document.getElementById("frontpage").innerHTML=html;
+}
+function setmymapheight(){
+		var h1=$("#route-head").height();
+		var h2=$("#route-switch").height();
+		 var h=(window.innerHeight);
+		 var x=Math.max(95, (h1+h2+15));
+		 var nh=(h-x)+"px";
+		 document.getElementById("map").style.height= nh;	
+}
+</script>
+<script type="text/javascript">
+//add to home
+var addToHomeConfig = {
+//	returningVisitor: true,		// Show the message only to returning visitors (ie: don't show it the first time)
+	expire: 720					// Show the message only once every 12 hours
+};
+</script>
+	<link rel="stylesheet" href="css/add2home.css">
+<script type="application/javascript" src="js/add2home.js" charset="utf-8"></script>
+
+</head>
+<body>
+
+<div data-role="page" id="home" data-theme="a" style="min-height:100%">
+<div id="frontpage">
+<script>
+sethomepageimageorintation();
+</script>
+</div>
+<div data-role="footer"  data-tap-toggle="false">
+    <div data-role="navbar" >
+      <ul>
+		<li><a href="#about1" >About</a></li>
+        <li><a href="#route" >Route</a></li>
+		<li><a href="#script" >Script</a></li>
+      </ul>
+    </div>
+  </div>
+</div><!-- /page -->
+
+
+<div data-role="page" id="about1" data-add-back-btn=true data-theme="b">
+  <div data-role="header"  data-tap-toggle="false">
+    <h1>Walk details</h1>
+		<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+   <div data-role=content>
+ <div id="about1content"></div>
+ <h3>Walk description and details</h3>
+ Audio introduction (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/introduction.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/introduction.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+ <br><br>
+ <div style="text-align: center;"><img src="images/script27-b.jpg" max-width="80%"><br></div>
+<br>Marlow is a fashionable commuter town that sits on the Thames half way between Oxford and London. This delightful walk explores the riverside from here downstream to Bourne End. 
+<br><br> Along the way you will see the physical characteristics of the Middle Thames - its width and its bends, its floodplains and its sediments, its fish and wildfowl.
+ <br><br>Learn how people have earned their livelihoods along the banks of the river, how Marlow was once a poor riverside port and how its trade declined when the railways arrived. 
+<br><br>Discover how the Victorians found new uses for the river and made it a playground for the upper classes, and see the leisure activities that continue along the riverbank today. 
+<br><br>Find out about literature written by authors who were inspired by the beauty of this stretch of the Thames. Hear some unusual tales about wild woods, puppy pie, a cardboard castle and the mysteries of Peterswood.
+
+<hr style="width: 100%; height: 2px;">
+   
+				<h3>Location</h3>
+				<p>Marlow, Southeast England</p>
+				<h3>Start Point</h3>
+				<p>Court Garden Leisure Centre, SL7 2AE<br>Pay and display car park available</p>
+				<h3>Finish Point</h3>
+				<p>Bourne End Railway Station</p>
+				<h3>Distance</h3>
+				<p>4.5 Miles (shorter option ending at Marlow lock is 1 mile )</p>
+				<h3>Level</h3>
+				<p>Gentle. An easy walk along a flat route. (Can be muddy in winter)</p>
+				<h3>Suitable for</h3>
+				<p>Familes - Plenty along the riverside to interest children. <br>Dogs - keep on a lead on grazing land</p>
+				<h3>Refreshments</h3>
+				Cafes, pubs and restaurants in Marlow and Bourne End; cafe at Court Garden House (Stop 2); Two Brewers in St Peter Street (stop 10);cafe at Old Thatch Cottage (Stop 22); Spade Oak pub (Stop 22); OTT Restaurant and Bar (Stop 24)
+				<h3>Facilities</h3>
+				<p>Public toilets in Higginson Park, Marlow (Stop 3) and at Bourne End railway station (Stop 27)</p>
+				<h3>Other info</h3>
+				<p>- Marlow's small museum is open Sat, Sun and Bank Holidays 1-5pm in summer, Sun only in winter<br>
+- Old Thatch Cottage garden is open May to August on Weds, Sat and Sun only 2-5.30pm<br>
+- Sailing at Upper Thames Sailing Club on Sun for most of the year as well as on Weds evenings and Sat afternoons in the summer</p>
+		</div><!--/content-primary -->	
+<script type="text/javascript">
+	var html;
+	if (fixedheadercapable==true){
+		 html='<div data-role="footer"  data-tap-toggle="false">';
+		}
+	else{
+			html='<div>';
+		}
+		html+='<div data-role="navbar" data-tap-toggle="false">';
+		html+='<ul><li><a href="#about1" data-transition="slide" data-theme="b">Details</a></li>';
+        html+='<li><a href="#about2"  data-transition="slide" data-theme="a">Review</a></li>';
+		html+='<li><a href="#about3"  data-transition="slide" data-theme="a" >Credits</a></li>';
+		html+='<li><a href="#about4"  data-transition="slide" data-theme="a">Project</a></li>';
+		html+='</ul></div></div>';
+		if (fixedheadercapable==true){
+		 document.getElementById("about1").innerHTML+=html;	
+		 }
+		 else
+		 {
+		 document.getElementById("about1content").innerHTML+=html;
+		 }
+		 
+	$("#about1").bind('swiperight', function (event, ui) {
+	$.mobile.changePage("#about4", { transition: "slide",	reverse: true});
+	});
+	$("#about1").bind('swipeleft', function (event, ui) {
+	$.mobile.changePage("#about2", { transition: "slide"});
+	});
+</script>  
+</div>
+
+<div data-role="page" id="about2" data-add-back-btn=true data-theme="b">
+  <div data-role="header"  data-tap-toggle="false">
+    <h1>Reviews</h1>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content>
+  <div id="about2content"></div>
+ <h3>Reviews of this walk</h3>
+<a href="mailto:discoveringbritain@rgs.org?Subject=Tales%20of%20the%20Riverbank%20walk">
+<img src="images/feedback.gif" width="120">
+</a>
+<br><br>
+We would love to hear your feedback about the Tales of the Riverbank walk <br><br>
+<span style="font-weight: bold;">What other people said:</span>
+<br><br>No reviews submitted for this walk yet - why not be the first?
+</div>
+<script type="text/javascript">
+	var html;
+	if (fixedheadercapable==true){
+		 html='<div data-role="footer"  data-tap-toggle="false">';
+		}
+	else{
+			html='<div>';
+		}
+		html+='<div data-role="navbar" data-tap-toggle="false">';
+		html+='<ul><li><a href="#about1" data-transition="slide" data-direction="reverse" data-theme="a">Details</a></li>';
+        html+='<li><a href="#about2"  data-transition="slide" data-theme="b">Review</a></li>';
+		html+='<li><a href="#about3"  data-transition="slide" data-theme="a" >Credits</a></li>';
+		html+='<li><a href="#about4"  data-transition="slide" data-theme="a">Project</a></li>';
+		html+='</ul></div></div>';
+		if (fixedheadercapable==true){
+		 document.getElementById("about2").innerHTML+=html;	
+		 }
+		 else
+		 {
+		 document.getElementById("about2content").innerHTML+=html;
+		 }
+	$("#about2").bind('swiperight', function (event, ui) {
+	$.mobile.changePage("#about1", { transition: "slide",	reverse: true});
+	});
+	$("#about2").bind('swipeleft', function (event, ui) {
+	$.mobile.changePage("#about3", { transition: "slide"});
+	});
+</script>
+</div><!-- /page -->  
+
+
+<div data-role="page" id="about3" data-add-back-btn=true data-theme="b">
+  <div data-role="header"  data-tap-toggle="false">
+    <h1>Credits</h1>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content>
+  <div id="about3content"></div>
+<h3>Credits for this walk</h3>
+The RGS-IBG would like to thank the following people and organisations for their assistance in
+producing this Discovering Britain walk:
+<br><br>&#8226; Mike Jackson for creating the walk and providing photographs
+<br><br>&#8226; Gary Gray and Henry the dog for good company on the walk
+<br><br>&#8226; Jenny Lunn for editing the walk materials
+<br><br>&#8226; Caroline Millar for editing the audio commentary
+<br><br>&#8226; The Marlow Society and Bucks Free Press for kind permission to use various archive images held in the SWOP (Sharing Old Wycombe's Photos) collection
+<br><br>&#8226; Francis Frith for supplying an archive image of Marlow Mills
+<br><br>Discovering Britain is a project of the Royal Geographical Society (with IBG).
+<br><br>The digital and print maps used for Discovering Britain are licensed to the RGS-IBG from Ordnance Survey.
+</div>
+<script type="text/javascript">
+	var html;
+	if (fixedheadercapable==true){
+		 html='<div data-role="footer"  data-tap-toggle="false">';
+		}
+	else{
+			html='<div>';
+		}
+		html+='<div data-role="navbar" data-tap-toggle="false">';
+		html+='<ul><li><a href="#about1" data-transition="slide" data-direction="reverse" data-theme="a">Details</a></li>';
+        html+='<li><a href="#about2"  data-transition="slide" data-direction="reverse" data-theme="a">Review</a></li>';
+		html+='<li><a href="#about3"  data-transition="slide" data-theme="b" >Credits</a></li>';
+		html+='<li><a href="#about4"  data-transition="slide" data-theme="a">Project</a></li>';
+		html+='</ul></div></div>';
+		if (fixedheadercapable==true){
+		 document.getElementById("about3").innerHTML+=html;	
+		 }
+		 else
+		 {
+		 document.getElementById("about3content").innerHTML+=html;
+		 }
+	$("#about3").bind('swiperight', function (event, ui) {
+	$.mobile.changePage("#about2", { transition: "slide",	reverse: true});
+	});
+	$("#about3").bind('swipeleft', function (event, ui) {
+	$.mobile.changePage("#about4", { transition: "slide"});
+	});
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="about4" data-add-back-btn=true data-theme="b">
+  <div data-role="header"  data-tap-toggle="false">
+    <h1>Project</h1>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content>
+  <div id="about4content"></div>
+ <h3>About the project</h3>
+<img src="images/discovering britain logo.gif" width="120" /><br>
+This walk has been developed by Mike Jackson who is a fellow of the <a href="http://www.rgs.org" >Royal Geographical Society (with IBG)</a> as part of the Society's Discovering Britain project.
+<br><br>We think Britain's landscapes are wonderful. There is a tremendous variety of different landscapes within our shores &#45; whether in the countryside, in towns and cities or at the seaside - and every landscape has a story to tell about our past and present.
+<br><br>We are developing an exciting series of geographically-themed walks across the country that aim to bring these stories alive and to inspire everyone to explore and learn more about Britain. 
+<br><br>Each walk explores a particular landscape, finding out about the way in which the forces of nature, people, events and the economy have created what you see today.
+<br><br>You can find Discovering Britain and discover more walks at <a href="http://www.discoveringbritain.org">www.discoveringbritain.org</a>
+ 
+</div>
+<script type="text/javascript">
+	var html;
+	if (fixedheadercapable==true){
+		 html='<div data-role="footer"  data-tap-toggle="false">';
+		}
+	else{
+			html='<div>';
+		}
+		html+='<div data-role="navbar" data-tap-toggle="false">';
+		html+='<ul><li><a href="#about1" data-transition="slide" data-direction="reverse" data-theme="a">Details</a></li>';
+        html+='<li><a href="#about2"  data-transition="slide" data-direction="reverse" data-theme="a">Review</a></li>';
+		html+='<li><a href="#about3"  data-transition="slide" data-direction="reverse" data-theme="a" >Credits</a></li>';
+		html+='<li><a href="#about4"  data-transition="slide" data-theme="b">Project</a></li>';
+		html+='</ul></div></div>';
+		if (fixedheadercapable==true){
+		 document.getElementById("about4").innerHTML+=html;	
+		 }
+		 else
+		 {
+		 document.getElementById("about4content").innerHTML+=html;
+		 }
+	$("#about4").bind('swiperight', function (event, ui) {
+	$.mobile.changePage("#about3", { transition: "slide",reverse: true});
+	});
+	$("#about4").bind('swipeleft', function (event, ui) {
+	$.mobile.changePage("#about1", { transition: "slide"});
+	});
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="route" data-add-back-btn=true data-theme="b">
+  <div data-role="header" id="route-head" data-tap-toggle="false">
+    <h1>Walk route</h1>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content>
+
+<div class="gps-flip-switch" id="route-switch">
+	<select name="flip-min" id="flip-min" data-role="slider">
+		<option value="off">Track me</option>
+		<option value="on">Tracking</option>
+	</select>
+	 <b>Click <img src="images/markericon.png" > for script</b>
+
+	<div id="gps"></div>
+</div>
+
+<script>
+$('#flip-min').change(function(event) {
+    event.stopPropagation();
+    var myswitch = $(this);
+    var show     = myswitch[0].selectedIndex == 1 ? true:false;
+    if(show) {starttrack();} else { stoptrack(); }
+});
+</script>
+  
+<div id="map" style="border: 1px solid black; width:100%; height:300px;"></div>	
+<script type="text/javascript" src="http://openspace.ordnancesurvey.co.uk/osmapapi/openspace.js?key=A16CD6D46534DDFBE0405F0AC86069DE"></script>
+<script type= "text/javascript" src="js/buildmap.js"></script>
+<script>
+setmymapheight();
+</script>
+</div>
+</div><!-- /page -->  
+
+<div data-role="page" id="script" data-add-back-btn=true data-theme="c">
+  <div data-role="header"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content>
+		<div class="content-primary">	
+		<ul data-role="listview">
+			<li><a href="#script1">
+				<img src="images/stop01.jpg" width="80px" height="80px"/>
+				<h3>1. Welcome to Marlow</h3>
+				<p>Marlow Museum, Court Garden Car Park</p>
+			</a></li>
+			<li><a href="#script2">
+				<img src="images/stop02.png"  width="80px" height="80px"/>
+				<h3>2. A batty beginning</h3>
+				<p>Court Garden House</p>
+			</a></li>
+			<li><a href="#script3">
+				<img src="images/stop03.png"  width="80px" height="80px"/>
+				<h3>3. Higginson&#39;s Golden Legacy</h3>
+				<p>Steve Redgrave Statue</p>
+			</a></li>
+			<li><a href="#script4">
+				<img src="images/stop04.png"  width="80px" height="80px"/>
+				<h3>4. A swan in chains</h3>
+				<p>Thames riverbank, Higginson Park</p>
+			</a></li>
+			<li><a href="#script5">
+				<img src="images/stop05.png"  width="80px" height="80px"/>
+				<h3>5. Bridged with Budapest</h3>
+				<p>Riverbank opposite Marlow Rowing Club</p>
+			</a></li>
+			<li><a href="#script6">
+				<img src="images/stop06.png"  width="80px" height="80px"/>
+				<h3>6. Who ate puppy pie?</h3>
+				<p>Under Marlow Bridge</p>
+			</a></li>
+			<li><a href="#script7">
+				<img src="images/stop07.png"  width="80px" height="80px"/>
+				<h3>7. The one that got away</h3>
+				<p>On Marlow Bridge looking downstream at The Compleat Angler Hotel</p>
+			</a></li>
+			<li><a href="#script8">
+				<img src="images/stop08.png"  width="80px" height="80px"/>
+				<h3>8. Taming the river</h3>
+				<p>On Marlow Bridge looking downstream at the weir </p>
+			</a></li>
+			<li><a href="#script9">
+				<img src="images/stop09.png"  width="80px" height="80px"/>
+				<h3>9. Gone in a flash</h3>
+				<p>The jetty at the end of St Peter Street</p>
+			</a></li>
+			<li><a href="#script10">
+				<img src="images/stop10.png"  width="80px" height="80px"/>
+				<h3>10. Wharves and warehouses</h3>
+				<p>The jetty at the end of St Peter Street</p>
+			</a></li>
+			<li><a href="#script11">
+				<img src="images/stop11.png"  width="80px" height="80px"/>
+				<h3>11. Boating and fishing</h3>
+				<p>Fisherman&#39;s Retreat, St Peter Street</p>
+			</a></li>
+			<li><a href="#script12">
+				<img src="images/stop12.png"  width="80px" height="80px"/>
+				<h3>12. Counting corners</h3>
+				<p>Seven Corners Passage</p>
+			</a></li>
+			<li><a href="#script13">
+				<img src="images/stop13.png"  width="80px" height="80px"/>
+				<h3>13. Bold as brass</h3>
+				<p>The Garth, 31 Mill Lane</p>
+			</a></li>
+			<li><a href="#script14">
+				<img src="images/stop14.png"  width="80px" height="80px"/>
+				<h3>14. Weirs and water wheels</h3>
+				<p>Arched bridge over the mill pond near Marlow Lock</p>
+			</a></li>
+			<li><a href="#script15">
+				<img src="images/stop15.png"  width="80px" height="80px"/>
+				<h3>15. A new pound</h3>
+				<p>Marlow Lock</p>
+			</a></li>
+			<li><a href="#script16">
+				<img src="images/stop16.png"  width="80px" height="80px"/>
+				<h3>16. Flooding and football</h3>
+				<p>Gossmore Park</p>
+			</a></li>
+			<li><a href="#script17">
+				<img src="images/stop17.png"  width="80px" height="80px"/>
+				<h3>17. Journey&#39;s End</h3>
+				<p>Opposite Longridge Activity Centre</p>
+			</a></li>
+			<li><a href="#script18">
+				<img src="images/stop18.png"  width="80px" height="80px"/>
+				<h3>18. A cardboard castle</h3>
+				<p>Riverbank opposite Quarry Wood Hall</p>
+			</a></li>
+			<li><a href="#script19">
+				<img src="images/stop19.png"  width="80px" height="80px"/>
+				<h3>19. Wild woods</h3>
+				<p>Bench by the river</p>
+			</a></li>
+			<li><a href="#script20">
+				<img src="images/stop20.png"  width="80px" height="80px"/>
+				<h3>20. Sinister circles</h3>
+				<p>Third kissing gate</p>
+			</a></li>
+			<li><a href="#script21">
+				<img src="images/stop21.png"  width="80px" height="80px"/>
+				<h3>21. Gritty hollows</h3>
+				<p>Beside Spade Oak Lake</p>
+			</a></li>
+			<li><a href="#script22">
+				<img src="images/stop22.png"  width="80px" height="80px"/>
+				<h3>22. The mysteries of Peterswood</h3>
+				<p>Old Thatch Cottage, Coldmoorholme Lane</p>
+			</a></li>
+			<li><a href="#script23">
+				<img src="images/stop23.png"  width="80px" height="80px"/>
+				<h3>23. Horse power</h3>
+				<p>Former site of Spade Oak Wharf</p>
+			</a></li>
+			<li><a href="#script24">
+				<img src="images/stop24.png"  width="80px" height="80px"/>
+				<h3>24. A gentleman&#39;s yacht</h3>
+				<p>Upper Thames Sailing Club</p>
+			</a></li>
+			<li><a href="#script25">
+				<img src="images/stop25.png"  width="80px" height="80px"/>
+				<h3>25. Gunpowder</h3>
+				<p>Dinnie&#39;s Riverside near Bourne End Marina</p>
+			</a></li>
+			<li><a href="#script26">
+				<img src="images/stop26.png"  width="80px" height="80px"/>
+				<h3>26. A metal donkey</h3>
+				<p>Bourne End railway station</p>
+			</a></li>
+			<li><a href="#script27">
+				<img src="images/stop27.png"  width="80px" height="80px"/>
+				<h3>27. The story of a riverside town</h3>
+				<p>Bourne End railway station</p>
+			</a></li>			
+		</ul>
+		</div><!--/content-primary -->	
+
+  </div>
+<script type="text/javascript">
+$("#script").bind('swiperight', function (event, ui) {
+$.mobile.changePage("#home", { transition: "slide",	reverse: true});
+});
+</script>  
+</div><!-- /page -->  
+
+ <!-- Script 1 --> 
+<div data-role="page" id="script1" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader1" data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content  id="scriptcontent1">
+<span style="font-weight: bold; ">1. Welcome to Marlow</span>
+<br>Marlow museum, Court Garden car park
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track01.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track01.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+<div style="text-align: center;"><img src="images/script01-a.jpg" max-width="80%"><br>Marlow from the lock<br>&#169; Mike Jackson</div>
+<br>Hello and welcome to Marlow which is almost exactly half way between Oxford and London. 
+<br><br>My name is Mike Jackson and I am a Fellow of the Royal Geographical Society. This riverside town has been my home for the last 25 years and it owes its very existence to the river. 
+<br><br>On the walk I would like to show you how it has shaped the lives of the people who have lived along its banks. We will see some of the physical characteristics of the river &#45; its width and its bends, its floodplains and its sediments, its fish and its wildfowl. 
+<br><br>We are going to explore how different aspects of the river have influenced the people who have come to live, work and play on the river over the centuries. 
+<br><br>There are three themes running through this walk. The first theme is livelihoods. We will learn how ordinary people have made a living here and discover how Marlow has developed from a poor riverside port into a fashionable commuter town. 
+<br><br>The second theme is leisure. In Victorian times the river became a playground especially for the upper classes. We will discover more about their leisure activities as well as those that can be enjoyed here today. 
+<br><br>The third theme is literature. Many famous authors have been attracted to this area and it is said that Marlow has &quot;an embarrassment of literary riches&quot;. Along the walk we hear some of their writing and see how it has been inspired by the river.
+<br><br><div style="text-align: center;"><img src="images/script01-b.jpg" max-width="80%"><br>Most of the route follows the Thames Path so look for the signs<br>&#169; Mike Jackson</div>
+<br>The walk follows the Thames Path National Trail for four and a half miles downstream from the centre of Marlow to Bourne End. 
+<br><br>There is a pleasant train ride back to Marlow, or if you are a keen walker there is a path on the other side of the river over Winter Hill that gives spectacular views of Marlow. 
+<br><br>Those looking for a shorter walk on paved surfaces could walk as far as Marlow lock (Stop 14).
+<br><br><div style="text-align: center;"><img src="images/script01-c.jpg" max-width="80%"><br>Marlow's small museum<br>&#169; Mike Jackson</div>
+<br>If you are here on a Sunday when the small museum is open take a look inside before you set off. 
+<br><br>I hope the sun is shining for you so that you can enjoy Marlow and the Thames at its best.
+</div>
+<script type="text/javascript"> 
+  addscriptfooter(1);
+  changescriptpage(1);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions1" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader1"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="directionscontent1">
+<span style="font-weight: bold; ">Directions to stop 2</span>
+<br><br>From the Museum and car park go round the side of Court Garden House by the cricket pitch. Stop outside the front of the house overlooking the park and river.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map1.png"  width="480px" height="320px" max-width="80%"><br></div>
+ </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(1);
+  changedirectionspage(1);
+</script>
+ </div>
+ 
+ <!-- Script 2 --> 
+ <div data-role="page" id="script2" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader2" data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent2">
+<span style="font-weight: bold; ">2. A batty beginning</span>
+<br>Court Garden house
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track02.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track02.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+<div style="text-align: center;"><img src="images/script02-a.jpg" max-width="80%"><br>Court Garden House<br> &#169; Mike Jackson</div>
+<br><br>This is Court Garden House which has a magnificent view over the park down to the river. In this building we have links to all three of the themes of our walk: livelihoods, leisure and literature.
+<br><br>
+The house was built in the middle of the eighteenth century by Dr William Battie. He also had a house on the river in Twickenham and made his living as a physician specialising in mental disorders. He was also a Thames Commisioner of which we will hear more later. It seems that Battie was also an enthusiastic, if forgetful, architect.  When he designed Court Garden he apparently forgot to include a staircase and one had to be added afterwards. Marlow people like to think that this is where the word &#39;batty&#39; comes from, meaning daft or crazy! Today Court Garden is no longer a private house. It has been expanded to include a leisure centre with a swimming pool, squash courts and a fitness centre, while the house itself is a popular wedding venue. 
+<br><br><div style="text-align: center;"><img src="images/script02-b.jpg" max-width="80%"><br>Percy Bysshe Shelley by Alfred Clint<br>Wikimedia Commons (Creative Commons License)<br><br></div>
+The literary connection to this house comes from the small theatre that is also housed here. It is named after Percy Bysshe Shelley who was one of Britain&#39;s finest romantic poets. In 1817 Shelley came to live in Marlow for about a year and this is when he completed his poem &quot;The Revolt of Islam&quot;, a parable about revolution and idealism. His wife, Mary, tells us that Shelley wrote the poem &quot;in his boat, as it floated under the beech groves of Bisham, or during wanderings in the neighbouring country, which is distinguished for peculiar beauty.&quot; 
+<br><br>
+The Shelleys were friends with the satirist Thomas Love Peacock. He also lived in Marlow and described the beauty of the river in his lyrical poem &quot;The Genius of the Thames&quot;. It includes these lines:
+<br><br><div style="text-align: center;"><img src="images/script02-c.jpg" max-width="80%"><br>Thomas Love Peacock by Henry Wallis<br>Wikimedia Commons (Creative Commons License)<br><br></div>
+&quot;Delight shall check the expanded sail<br>
+In woody Marlow&#39;s winding vale:<br>
+And fond regret for scenes so fair<br>
+With backward gaze shall linger there&quot;<br>
+<br><br>
+On the other hand it is difficult to see how the beauty of the Thames influenced Mary Shelley&#39;s writing because it was while she lived here that she completed her most famous work, Frankenstein! <br>
+</div>
+<script type="text/javascript"> 
+  addscriptfooter(2);
+  changescriptpage(2);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions2" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader2"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent2">
+<span style="font-weight: bold; ">Directions to stop 3</span>
+<br><br>Go over to the statue of Sir Steve Redgrave which is just in front of Court Garden House.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map1.png" width="480px" height="320px" max-width="80%"><br></div>
+</div>
+<script type="text/javascript"> 
+  adddirectionsfooter(2);
+  changedirectionspage(2);
+</script>
+ </div>
+ 
+  <!-- Script 3 --> 
+ <div data-role="page" id="script3" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader3"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent3">
+<span style="font-weight: bold; ">3. Higginson&#39;s golden legacy</span>
+<br>Steve Redgrave Statue
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track03.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track03.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+
+<br><br><div style="text-align: center;"><img src="images/script03-a.jpg" max-width="80%"><br>Higginson Park - a gift to the town<br> &#169; Mike Jackson<br><br></div>
+In the early 1920s the private estate in which Court Garden stands was due to be sold. It was to be divided into smaller plots for riverside houses. Fortunately a group of local men began fundraising to buy it for the town. They associated their campaign with General Sir George Higginson who was a well-connected veteran of the Crimean war. He lived in Marlow and was celebrating his hundredth birthday that year. Enough money was raised and in 1926 a ceremony was held in which Princess Mary, the Princess Royal, presented the deeds to the General. He immediately passed them to the Town and the park was named after him. 
+<br><br><div style="text-align: center;"><img src="images/script03-b.jpg" max-width="80%"><br>Higginson Park and Court Garden House<br> &#169; Mike Jackson<br><br></div>
+Today Higginson Park is a popular leisure spot for residents and visitors alike. It has a fine playground for young children, a skate park for older ones, a mini golf course, a cricket pitch and a maze created to celebrate the Millennium.
+<br><br><div style="text-align: center;"><img src="images/script03-c.jpg" max-width="80%"><br>Pleasure boats on the Thames during the Regatta (c. 1900)<br>By kind permission of the Bucks Free Press<br><br></div>
+The park is also the venue for Marlow&#39;s main annual social and sporting event: the Marlow Regatta. A rowing regatta has taken place here since 1855. The Marlow Regatta takes pace before the more famous Henley Royal Regatta held upstream and international crews use it as a warm-up event. However when a multi-lane rowing course was built near Windsor in 2001 Marlow Regatta decided to move there with its serious, competition rowers. 
+<br><br>
+The people of Marlow were unhappy at the loss of the regatta which was an opportunity for some to dress up by the river while others simply enjoyed the fairground and the fireworks. The problem was solved by creating a new Town Regatta for youth crews and dragon boats. So now there are two Marlow regattas each year!
+<br><br><div style="text-align: center;"><img src="images/script03-d.jpg" max-width="80%"><br>Statue of Sir Steve Redgrave<br> &#169; Mike Jackson<br><br></div>
+Marlow is also the home town of famous Olympic rower, Sir Steve Redgrave. He is usually considered Britain&#39;s greatest ever Olympian because he won gold medals in five consecutive Olympic Games. Sir Steve is a tall man but not quite the eight feet represented in this statue that was unveiled by the Queen as part of her Golden Jubilee celebrations in 2002. On the opposite bank, by the bridge, is Marlow Rowing Club which is where he learned to row as a schoolboy. 
+</div>
+<script type="text/javascript"> 
+  addscriptfooter(3);
+  changescriptpage(3);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions3" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader3"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent3">
+<span style="font-weight: bold; ">Directions to stop 4</span>
+<br><br>Make your way across the grass to the bank of the river.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map1.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(3);
+  changedirectionspage(3);
+</script> 
+</div>  
+  
+    <!-- Script 4 --> 
+ <div data-role="page" id="script4" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader4"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent4">
+<span style="font-weight: bold; ">4. A swan in chains</span>
+<br>Thames riverbank, Higginson Park
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track04.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track04.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+
+<br><br><div style="text-align: center;"><img src="images/script04-a.jpg" max-width="80%"><br>Swans and ducks at Marlow<br> &#169; Mike Jackson</div>
+<br>The riverbank here in Higginson Park is a very popular place for people to bring children to feed the ducks and see the swans. 
+<br><br>
+Swans are very important to the river as well as to the town and county. In fact the county flag of Buckinghamshire features a swan set against a red and black background. As we continue into the town look on the lamp posts by the church and you will see the swan emblem there too. It dates back to Anglo Saxon times when Buckinghamshire was known for breeding swans for the king. Young birds were highly valued for food and were often served at royal banquets. 
+<br><br><div style="text-align: center;"><img src="images/script04-b.jpg" max-width="80%"><br>The county flag of Buckinghamshire<br>Wikimedia Commons (Creative Commons License)</div>
+<br>Did you know that all the swans in Britain have just three owners? The first is the Monarch. On Buckinghamshire&#39;s emblem and you will see that there is a crown around the swan&#39;s neck and it is attached to a chain. This illustrates that swans belongs to the king or queen, an ancient law that still applies to any wild swans that have not been marked. The other owners of swans are two of London&#39;s Livery Companies &#45; the Vintners and the Dyers.
+<br><br><div style="text-align: center;"><img src="images/script04-c.jpg" max-width="80%"><br>Swan upping at Marlow<br> &#169; Mike Jackson</div>
+<br>We don't eat swans any more but each year an 800 year old tradition called 'Swan Upping' still takes place. Dressed in traditional red colours a representative of the Crown joins with the two Livery companies to count and mark young swans. They row up-river in six wooden skiffs and when they come across a family of swans the Uppers give the cry &#39;All-Up&#39;. They converge on the brood surrounding them with their boats. Then they take the swans ashore for marking and to check that they are healthy. 
+<br><br>Swan Upping takes place on the Thames in the third week of July. It takes five days for the skiffs to be rowed the 79 miles between Sunbury and Abingdon. Marlow is one of the places where the Swan Uppers stay overnight.
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(4);
+  changescriptpage(4);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions4" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader4"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent4">
+<span style="font-weight: bold; ">Directions to stop 5</span>
+<br><br>Walk along the riverside path towards the bridge. Stop just before the bridge and look across the river at the rowing club.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map1.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(4);
+  changedirectionspage(4);
+</script>
+ </div>
+ 
+     <!-- Script 5 --> 
+ <div data-role="page" id="script5" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader5"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent5">
+<span style="font-weight: bold; ">5. Bridged with Budapest</span>
+<br>The riverbank by Marlow Bridge
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track05.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track05.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Marlow&#39;s development was driven by two things &#45; its river trade with London and its role as a river crossing point. Records suggest that there was a bridge here as far back as the thirteenth century. The current suspension bridge replaced a wooden one that was sited a little way down stream at the end of St Peter Street and we will stop there later.  
+<br><br><div style="text-align: center;"><img src="images/script05-a.jpg" max-width="80%"><br>Marlow bridge<br> &#169; Mike Jackson</div>
+<br>The suspension bridge is now Marlow&#39;s most distinctive feature. It was designed by William Tierney Clark and opened in 1832. Clark went on to use a similar design to build a much larger version over the Danube at Budapest. Marlow&#39;s twin town is Marly le Roi which is near Paris, but as a result of the bridge it also has a special relationship with Hungary. A plaque on the bridge tells you that it is &#39;bridged&#39; with Budapest.
+<br><br><div style="text-align: center;"><img src="images/script05-b.jpg" max-width="80%"><br>Marlow bridge<br> &#169; Mike Jackson</div>
+<br>The suspension bridge was never designed for motor vehicles and in 1957 there were safety concerns. A two ton weight limit had to be imposed but it had an impact on traders in the town. It also affected the number 18 local bus service to Maidenhead. The 35 seat bus exceeded the weight limit when it was fully loaded and it was only allowed to cross the bridge with 15 passengers on board. Apparently it would stop before the bridge so that some passengers could alight and walk across getting back on at the other side. No one seemed to mind that the walking passengers and the bus were on the bridge at the same time!
+<br><br>
+Some officials thought that the bridge was beyond repair and were keen to replace it with a modern concrete structure. Local people were appalled at this idea. Not only would they lose their attractive bridge but extra traffic would clog up the town centre. So the Marlow Bridge Preservation Committee was set up and campaigned to retain the bridge. They were successful. A way to repair the bridge was found and a strengthened bridge reopened in 1966. Six years later the Marlow by-pass was opened with its own new river crossing which we will see later. The Marlow Bridge Preservation Committee lives on today as the Marlow Society and it campaigns to conserve the best of Marlow.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(5);
+  changescriptpage(5);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions5" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader5"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent5">
+<span style="font-weight: bold; ">Directions to stop 6</span>
+<br><br>Continue a few metres further and stop right beside the bridge.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map1.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(5);
+  changedirectionspage(5);
+</script>
+ </div>
+ 
+ 
+      <!-- Script 6 --> 
+ <div data-role="page" id="script6" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader6"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="scriptcontent6">
+<span style="font-weight: bold; ">6. Who ate puppy pie? </span>
+<br>Under Marlow Bridge
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track06.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track06.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+
+<br><br>
+From here you can get a close up view of the bridge and you will be able to see the swan motif on the ends of the metal beams which were added in 1860. Standing underneath Marlow Bridge is a good place to tell you about a very strange saying that even found its way into Edith Nesbitt&#39;s book, &#39;The Railway Children&#39;. In one chapter the children are talking to a woman on a barge, and she says: 
+<br><br><div style="text-align: center;"><img src="images/script06-a.jpg" max-width="80%"><br>Swan motiff on Marlow bridge<br> &#169; Mike Jackson</div>
+<br>&#34;You mustn&#39;t take no notice of my Bill, is bark's worse'n 'is bite. Some of the kids down Farley way is fair terrors. It was them put &#39;is back up calling out about who ate the puppy&#45;pie under Marlow bridge.&#34;
+<br><br>So where does this strange phrase about &#39;puppy-pie&#39; come from? Folk lore has it that an inn keeper from Medmenham, which is just upstream, once suspected that some bargemen were planning to raid his larder. He was a humorous man and he decided to teach them a lesson. He baked a special pie and placed it in the larder. The bargemen made their raid and took what they thought was a rabbit pie. As they ate it downstream under Marlow Bridge they were told of its real contents &#45; a recently drowned litter of puppies. From that day the phrase puppy-pie came to be a term of abuse among bargemen.
+<br><br><div style="text-align: center;"><img src="images/script06-b.jpg" max-width="80%"><br>Bargemen loading logs onto a barge at Marlow (early 1900s)<br>By kind permission of The Marlow Society</div>
+<br>We are going to hear more about the bargemen who hauled boats along the river a little later in the walk but they had a reputation for being rough types with coarse and colourful language.
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(6);
+  changescriptpage(6);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions6" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader6"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent6">
+<span style="font-weight: bold; ">Directions to stop 7</span>
+<br><br>Follow the Thames Path signs alongside the bridge. Go up the steps on the right or up the slope and then cross the road. Go onto the bridge and stop part way across looking towards The Compleat Angler hotel.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map1.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(6);
+  changedirectionspage(6);
+</script>
+ </div>
+ 
+      <!-- Script 7 --> 
+ <div data-role="page" id="script7" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader7"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent7">
+<span style="font-weight: bold; ">7. The one that got away</span>
+<br>On Marlow Bridge looking downstream at The Compleat Angler Hotel
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track07.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track07.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+
+<br><br><div style="text-align: center;"><img src="images/script07-a.jpg" max-width="80%"><br>The Complete Angler Hotel<br> &#169; Mike Jackson</div>
+<br>From the bridge you have a splendid view of the river with the lock downstream in the distance. On the opposite bank is The Compleat Angler hotel which enjoys a magnificent setting by the weir. Angling is the sport of fishing using a hook and the hotel takes its name from Izaak Walton&#39;s famous book.  &#39;The Compleat Angler&#39; was first published in 1640 and it is a celebration of the art of fishing in prose and verse. You might be surprised to learn that it is the third most published book in the English language after The Bible and the works of Shakespeare.
+<br><br>Fishing is a very popular leisure activity and the Environment Agency estimate that in England and Wales over 4 million people go fishing each year. While fishing on the Thames is now a leisure pastime in times gone by it was also an important source of food. According to the Doomsday Book the manor at Marlow had a fishery of 1,000 eels.   
+<br><br><div style="text-align: center;"><img src="images/script07-b.jpg" max-width="80%"><br>The old wooden bridge at Marlow with eel bucks attached (early 1800s)<br>By kind permission of The Marlow Society</div>
+<br>Wicker traps, called eel bucks, were placed in weirs all along the Thames right up to the twentieth century. Eels migrate from the Sargasso Sea in the North Atlantic and spend up to 20 years in European rivers before making the 4,000 mile return journey to spawn and die. 
+<br><br>
+Jellied eels have long been a popular dish served in the Pie Mash shops of East London. However there has recently been an unexplained collapse in the eel population in the Thames as well as across European rivers. As a result the eel, which was once so common, has now been placed on the critically-endangered list.
+<br><br>
+The Thames also used to support salmon until the river became too polluted but since the 1970s there has been a great improvement in water quality and there have been attempts to reintroduce the fish. Salmon ladders have been installed in all the weirs and young salmon have been released upstream. Unfortunately these efforts have so far been unsuccessful. Hopefully one day we will see salmon jumping the weirs again. 
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(7);
+  changescriptpage(7);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions7" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader7"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="directionscontent7">
+<span style="font-weight: bold; ">Directions to stop 8</span>
+<br><br>Stay on the bridge and look at the weir.
+<br><br><hr style="width: 100%; height: 2px;">
+
+<br><div style="text-align: center;"><img src="images/map1.png"  width="480px" height="320px" max-width="80%"><br></div>
+
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(7);
+  changedirectionspage(7);
+</script>
+ </div>
+ 
+      <!-- Script 8 --> 
+ <div data-role="page" id="script8" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader8"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent8">
+<span style="font-weight: bold; ">8. Taming the river</span>
+<br>On Marlow Bridge looking downstream at the weir 
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track08.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track08.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+From this spot you will be able to hear the water spilling over the weir which is directly in front of you. Weirs have existed on rivers ever since humans have lived besides them. They had three sometimes conflicting uses. First they were used by mill owners to produce a head of water to drive their mill wheels; secondly as we have already heard they were often used to support wicker traps to catch fish; finally they helped (but sometimes hindered) navigation by boats on the river. 
+<br><br><div style="text-align: center;"><img src="images/script08-a.jpg" max-width="80%"><br>Marlow weir from the bridge<br>&#169; Mike Jackson</div>
+<br>Today weirs are used to control the water level to make the river deep and safe enough for use by leisure craft. Boats make their way past weirs by using locks and we will stop at Marlow lock later. Before locks were built boats had to pass over the weirs and in those days most boats were working barges carrying cargo. We will learn how they did that at the next stop.
+<br><br>
+We will leave this spot with a literary description of Marlow weir written in 1896 by poet Joseph Ashby-Sterry in his book. &#39;A Tale of the Thames&#39;:
+<br><br><div style="text-align: center;"><img src="images/script08-b.jpg" max-width="80%"><br>The weir from Marlow Bridge by William Havell<br>Wikimedia Commons (Creative Commons License)</div>
+<br>&#34;Below is the stream, rushing, seething, and boiling, lashing through the sluices, tumbling over the weir, swirling between the rymers, eddying around the willow-grown isles, sweeping over the shallows, in a hurry to get away from the artificial cut to the lock, and apparently in a greater hurry to join it some distance below. There is a marvellous music about Marlow Weir. It is wondrous soothing, indescribably comforting, to smoke a lazy pipe and listen to it. There is a joyous note, with a sweet undercurrent of sadness in a minor key, that is singularly fascinating, and at the same time thrillingly touching.&#34;
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(8);
+  changescriptpage(8);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions8" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader8"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="directionscontent8">
+<span style="font-weight: bold; ">Directions to stop 9</span>
+<br><br>Retrace your steps across the bridge the way you came. Follow the perimeter of the churchyard round to the right and then take the footpath on the right signposted for the Thames Path. Notice the swan emblems on the lamp posts here. Follow the path with the churchyard on your right. At the end of the passage turn right into St Peter Street. Stop at the jetty by the river.
+<br><br><hr style="width: 100%; height: 2px;">
+
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(8);
+  changedirectionspage(8);
+</script>
+ </div>
+ 
+      <!-- Script 9 --> 
+ <div data-role="page" id="script9" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader9"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent9">
+<span style="font-weight: bold; ">9. Gone in a Flash</span>
+<br>Jetty at the end of St Peter Street
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track09.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track09.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+
+St Peter Street was once called Duck Lane not after ducks from the river but because there was a public ducking stool here! This is also where Marlow&#39;s original wooden bridges used to span the river before the suspension bridge was built. They reached over to where the lawns now are by The Compleat Angler hotel.
+<br><br><div style="text-align: center;"><img src="images/script09-a.jpg" max-width="80%"><br>Marlow weir signs<br>&#169; Mike Jackson</div>
+<br>In front of you is the weir and before the modern lock was built boats had to pass over it. So how did they do it? The answer is that weirs had a removable section called a &#39;flashlock&#39;. When the section was removed a &#34;flash&#34; of water would flow through the gap. Boats going downstream would then simply ride the wave over the weir. Even though the weirs were not as high as they are today this was nevertheless a dangerous exercise and there are records of many boats and their cargos being lost navigating flashlocks. 
+
+<br><br><div style="text-align: center;"><img src="images/script09-b.jpg" max-width="80%"><br>A flashlock capstan<br>&#169; Mike Jackson</div>
+
+<br>It was even trickier for the boats coming upstream. They had to be hauled through the flashlock using ropes. Notice that the weir is set at an angle. This allowed barges to be winched up by rope using a capstan on the bank close to where you are now standing. A capstan is a vertically rotating machine which ropes were wrapped round and was turned by hand. There is still an old capstan that has been preserved upstream at Hurley weir. 
+<br><br><div style="text-align: center;"><img src="images/script09-c.jpg" max-width="80%"><br>Plan showing how barges were hauled over a flashlock</div>
+<br>The dangerous nature of these flashlocks was highlighted in 1585 by a certain John Bishop who complained to the Lord Treasurer. He wrote this complaint in verse specifically about Marlow flashlock which at the time belonged to a mill owner named Thomas Farmer:
+<br><br>
+&#34;One ffarmer hath a lock in store <br>
+That hath made many child to weep <br>
+Their mothers beg from door to door <br>
+Their ffathers drowned in the deep <br>
+<br><br>
+At ffarmers lock four men be lost <br>
+Of late I putt you out of doubt <br>
+Three were drowned the stream them toste <br>
+The fourth he had his braines knocked out.&#34; <br>
+<br><br>
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(9);
+  changescriptpage(9);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions9" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader9"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent9">
+<span style="font-weight: bold; ">Directions to stop 10</span>
+<br><br>Stay at the jetty.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(9);
+  changedirectionspage(9);
+</script>
+ </div>
+ 
+       <!-- Script 10 --> 
+ <div data-role="page" id="script10" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader10"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent10">
+<span style="font-weight: bold; ">10. Wharves and warehouses</span>
+<br>Jetty at the end of St Peter Street
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track11.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track11.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Today St Peter Street it is a quiet and attractive place but Marlow was once a major river port and this street would have been very busy indeed. There were wharves along the river and there would have been warehouses and cottages here for bargemen, coal porters, brewers and labourers.
+<br><br><div style="text-align: center;"><img src="images/script10-a.jpg" max-width="80%"><br>St Peter Street - now a quiet dead end but once a busy street<br>&#169; Mike Jackson</div>
+<br>Daniel Defoe, who wrote &#39;Robinson Crusoe&#39; also wrote a travel book in the 1720s. In it he describes Marlow as &#34;a town of very great embarkation on the Thames, not so much for goods wrought here but for goods from the neighbouring towns, and particularly, a very great quantity of malt, and meal, is brought hither from High-Wickham which is one of the greatest corn markets on this side of England.&#34; 
+<br><br><div style="text-align: center;"><img src="images/script10-b.jpg" max-width="80%"><br>A London water cart<br>From 'Street Life in London' (1877) by J Thomson and A Smith<br>LSE Digital Library (Creative Commons License)</div>
+<br>Defoe continues: &#34;Here is also brought down a vast quantity of beech wood, which grows in the woods of Buckinghamshire more plentifully than in any other part of England.&#34;  He tells us that this wood was used for king&#39;s palaces and glass houses and to make &#39;fellies&#39; which were the wheel rims of London&#39;s street carts. Under City laws carts were not allowed to have iron wheels. Barges also brought goods upstream from London, mainly coal and rags which were used in the mills to make paper.  
+<br><br>
+Mary Shelley also wrote some interesting letters which give us an insight into the livelihoods of the people of Marlow in 1817. She wrote:
+<br><br>
+&#34;Marlow was inhabited by a very poor population. The women are lacemakers, and lose their health by sedentary labour, for which they were very ill paid. The poor-laws ground to the dust not only the paupers, but those who had risen just above that state, and were obliged to pay poor-rates.&#34;
+<br><br><div style="text-align: center;"><img src="images/script10-c.jpg" max-width="80%"><br>Three elderly women lace-makers<br>sitting outside a door of a
+brick and flint cottage<br>(location and date unknown)<br>By kind permission of the Bucks Fress Press</div>
+<br>The lace making that Mary Shelley talks about was a cottage industry that women undertook to supplement their household income. The lace they made was called bobbin lace or bone lace. It was made by moving bobbins over a cushion on which an intricate pattern was laid out with pins. The bobbins were often made of bone and were beautifully carved and decorated but the women earned a pittance for their long hours bent over lace making pillows. 
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(10);
+  changescriptpage(10);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions10" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader10"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent10">
+<span style="font-weight: bold; ">Directions to stop 11</span>
+<br><br>Retrace your steps back along St Peter Street. Pass the Two Brewers pub and notice the names of the houses you pass. After an entranceway on the right called Fisherman&#39;s Retreat stop outside the next building which is a series of three red brick houses. 
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(10);
+  changedirectionspage(10);
+</script>
+ </div>
+ 
+        <!-- Script 11 --> 
+ <div data-role="page" id="script11" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader11"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent11">
+<span style="font-weight: bold; ">11. Boating and fishing</span>
+<br>Fisherman&#39;s Retreat, St Peter Street
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track11.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track11.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Did you notice that the names of the houses in St Peter Street reflect its past life. They include The Old Weir House, Marlow Ferry and Duck Lane House. 
+<br><br><div style="text-align: center;"><img src="images/script11-a.jpg" max-width="80%"><br>The Two Brewers pub sign<br>&#169; Mike Jackson</div>
+<br>The Old Malt House is a clue that there was a brewery here. There were also two beer houses. The Barge Pole has gone but the Two Brewers survives. This is where Jerome K Jerome is reputed to have spent time writing his famous novel, &#39;Three Men in a Boat&#39;. This was published in 1889 when Marlow&#39;s river trade had fallen into decline because of the advent of the railways. The river was increasingly being used for leisure activities and St Peter Street had become a dead end as a result of the new bridge.
+<br><br><div style="text-align: center;"><img src="images/script11-b.jpg" max-width="80%"><br>Illustration from the cover of Three men in a Boat</div>
+<br>'Three men in a boat' is a humorous story of a boating holiday on the Thames between Kingston and Oxford. In the book Marlow is described as &#34;one of the pleasantest river centres I know of.  It is a bustling, lively little town; not very picturesque on the whole, it is true, but there are many quaint nooks and corners to be found in it&#34;. 
+<br><br><div style="text-align: center;"><img src="images/script11-c.jpg" max-width="80%"><br>Fishermans Retreat, St Peter Street</div>
+<br>Boating was already something of a Victorian craze and &#39;Three Men in a Boat&#39; encouraged it further. The year after the book was published the number of boats registered on the river increased by 50 per cent to 12,000. Around the same time the Barge Pole pub turned into an inn called Fisherman&#39;s Retreat. This is the building you are now standing by and it is where a Mrs Hoddinott advertised &#34;A superior service for Boating and Fishing Parties&#34;.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(11);
+  changescriptpage(11);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions11" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader11"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent11">
+<span style="font-weight: bold; ">Directions to stop 12</span>
+<br><br>Retrace your steps past the Two Brewers pub. Immediately after the entrance to the pub yard is a passageway signposted Thames Path. Stop at the entrance to the passageway. 
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(11);
+  changedirectionspage(11);
+</script> 
+ </div>
+ 
+         <!-- Script 12 --> 
+ <div data-role="page" id="script12" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader12"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent12">
+<span style="font-weight: bold; ">12. Counting corners</span>
+<br>Seven Corners Passage
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track12.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track12.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Reports say that 56,365 tons of merchandise passed up through Marlow flashlock in 1767. That&#39;s over 150 tons a day and we heard earlier how dangerous the flashlocks could be. About this time Parliament set up the Thames Navigation Commission to improve efficiency and safety on the river. The Commissioners started to replace the flashlocks with safer ones. They also improved towpaths to allow the introduction of horses. A 70 ton barge travelling upstream would typically have been towed by 8 horses.  Previously gangs of men up to 60 strong would manually haul the boats.
+<br><br><div style="text-align: center;"><img src="images/script12-a.jpg" max-width="80%"><br>Seven Corners Passage<br>&#169; Mike Jackson</div>
+<br>Improving the towpaths was a difficult task since there were often natural obstacles in the way. The Commissioners did not have the power of compulsory purchase and many landowners also refused permission for the towing path to enter their land. As a result the towpath often switched from one bank to the other and ferries had to be introduced to transfer the towing horses across the river. 
+<br><br>
+Here in Marlow is an example of where the owners refused to allow a towpath on their land. Towing horses had to be unhitched at the lock and walked all the way to the centre of town and out again while the barges were hauled up on ropes 400 metres long. A compromise was eventually reached when the landowners allowed a passage to be created at the back of their property. 
+<br><br><div style="text-align: center;"><img src="images/script12-b.jpg" max-width="80%"><br>Horses towing a barge on the river</div>
+<br>This is the narrow passage that you are about to walk along which is just wide enough for a horse. It didn&#39;t avoid the need to haul the barges but it did at least reduced the distance the horses had to be walked. It is called seven corners passage because of all the bends. See how many corners you can find &#45; I think someone may have miscounted! 
+<br><br>
+The introduction of horses improved efficiency, but it meant that the gangs of hauliers were no longer needed. It is recorded that this resulted in riots and eventually the gangs achieved some compensation from the Parish and from the Thames Commissioners. Today we benefit from the work of the Thames Commissioners to create the towpath. The Thames Path National Trail stretches all the way from the source of the river to the sea.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(12);
+  changescriptpage(12);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions12" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader12"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent12">
+<span style="font-weight: bold; ">Directions to stop 13</span>
+<br><br>Walk along Seven Corners Passage &#45; and see how many corners you count. At the end turn right into Mill Lane. Follow the road and shortly after it bends round to the left look for Number 31 on the left which is a house called The Garth. Stop outside this house.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(12);
+  changedirectionspage(12);
+</script>
+ </div>
+ 
+          <!-- Script 13 --> 
+ <div data-role="page" id="script13" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader13"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent13">
+<span style="font-weight: bold; ">13. Bold as brass</span>
+<br>The Garth, 31 Mill Lane
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track13.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track13.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+This house belonged to one of Marlow&#39;s mill owners. Marlow had a mill from medieval times for grinding corn but it in the late seventeenth century it was converted for a more unusual use &#45; making thimbles. A thimble is a metal cap worn on a finger to protect it when sewing. They have been around for a long time and Holland was the main producer of thimbles in Europe in the seventeenth century. 
+<br><br><div style="text-align: center;"><img src="images/script13-a.jpg" max-width="80%"><br>Former mill owner's house<br>&#169; Mike Jackson</div>
+<br>A Dutchman named John Lofting invented and patented a machine which automated the process of punching indentations into thimbles. In 1693 he decided to come over to England and set up a thimble mill in London. His original mill in London was powered by horses. Later on he decided that he wanted to increase production and to do this he needed water power. So he moved his mill to Marlow where he also produced oil from flax and rape seed. His thimbles were made of brass which he sourced from Temple Brass mills just a mile upstream at Bisham. It is estimated that Lofting made as many as two million thimbles a year. These were not all for the British market; records show that thimbles were taken downstream and exported through the Port of London.
+<br><br><div style="text-align: center;"><img src="images/script13-b.jpg" max-width="80%"><br>Lofting thimbles from the eighteenth century<br>Courtesy of UKDFD (UK Detector Finders Database)</div>
+<br>After Lofting died a new process for making thimbles was invented and Birmingham became the major producer. By the late eighteenth century the mills here had been converted to produce paper.
+<br><br>
+Did you know that thimbles came to have uses other than for sewing? A thimble became a measure for spirits; in the nineteenth century prostitutes used them to tap on their clients windows; and Victorian school mistresses are said to have used them to knock lazy children on the head! 
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(13);
+  changescriptpage(13);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions13" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader13"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent13">
+<span style="font-weight: bold; ">Directions to stop 14</span>
+<br><br>Continue along the lane. After about 25 metres take the footpath on the right signposted to Marlow Lock. Stop on the arched bridge.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(13);
+  changedirectionspage(13);
+</script>
+ </div>
+ 
+           <!-- Script 14 --> 
+ <div data-role="page" id="script14" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader14"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent14">
+<span style="font-weight: bold; ">14. Weirs and water wheels</span>
+<br>Arched bridge over the mill pond near Marlow Lock
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track14.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track14.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+From this vantage point you have a splendid view back to the weir and the bridge. If you look the other way you will see a 1960s housing development which features white weatherboarding. The architecture divides opinion but it is said to mimic the mills that previously stood here and today these houses sell for over &#163;1 million. 
+<br><br><div style="text-align: center;"><img src="images/script14-a.jpg" max-width="80%"><br>Marlow Mills (1890)<br>Copyright The Francis Frith Collection<br>www.francisfrith.com</div>
+<br>The mill streams that powered the mills still run under the houses and if you walk to the end of the lock at the next stop you will be able to see them flowing into the river below.
+<br><br><div style="text-align: center;"><img src="images/script14-b.jpg" max-width="80%"><br>Modern housing development on the site of Marlow Mills<br>&#169; Mike Jackson</div>
+<br>Mill owners relied on a good head of water to drive their mill wheels. So before the new locks were built they were in conflict with the river trade. They did not like opening the flashlocks for barges because it wasted water and it took a long time for the water level to recover sufficiently to drive their mill wheels again. They usually owned and controlled the weirs so they would charge for the use of the flashlock. At times when water levels were low they would also make barges wait hours or even days before letting them through. 
+<br><br><div style="text-align: center;"><img src="images/script14-c.jpg" max-width="80%"><br>Mill stream flowing under the houses<br>&#169; Mike Jackson</div>
+<br>Because the weirs were not as high as they are today the river water level was also much lower. In summer barges would frequently become grounded so in the eighteenth century the Thames Commissioners introduced a coordinated system of flashing the weirs twice a week. Weirs were opened in sequence for a few hours to create a surge of water deep enough to float the barges. After the flash the weir was closed again to rebuild the water level. This resulted in the river below becoming dry sometimes for up to twenty four hours. It is said that people could sometimes walk across the channel at Marlow below the weir without even wetting their feet.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(14);
+  changescriptpage(14);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions14" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader14"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent14">
+<span style="font-weight: bold; ">Directions to stop 15</span>
+<br><br>Continue across the arched bridge and round the corner to the lock.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map2.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(14);
+  changedirectionspage(14);
+</script> 
+ </div>
+ 
+            <!-- Script 15 --> 
+ <div data-role="page" id="script15" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader15"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent15">
+<span style="font-weight: bold; ">15. A new pound</span>
+<br>Marlow Lock
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track15.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track15.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+British canal building entered its &#39;Golden Age&#39; around 1770 and proposals were made for a canal to be built from Reading to London bypassing the meandering Thames. A Bill was presented to Parliament for such a canal but it was defeated. It had been opposed by the Thames Commissioners who now included most of the MPs residing in the Thames Valley. However it did cause the Commissioners enough of a fright to spur them into action to improve navigation on the Thames. The flashlock here at Marlow was replaced with a &#39;pound&#39; lock in 1773 and so were all the other flashlocks up to Sonning, 15 miles upstream.  
+<br><br><div style="text-align: center;"><img src="images/script15-a.jpg" max-width="80%"><br>Marlow Lock<br>&#169; Mike Jackson</div>
+<br>The new lock worked in much the same way as the one you see today. However it was made of earth and timber and it needed a lot of maintenance. Barges still needed to be hauled over rollers into the lock but at least it was safer than the flashlock it replaced. The mill owner was happy because it didn&#39;t waste water and he was also paid a toll for every boat that used the lock. 
+<br><br><div style="text-align: center;"><img src="images/script15-b.jpg" max-width="80%"><br>View of a plan showing the mills<br>at this time belonging to Jos. and Edw. Wright<br>and the first pound lock at Marlow (1816)<br>By kind permission of The Marlow Society</div>
+<br>George Phelps was the first lock keeper on a weekly wage of 5s 6d. In 1815 the first lock keeper&#39;s house was built and ten years later the lock was rebuilt with stone. This came from the Headington quarry near Oxford about 50 miles upstream. The lock was rebuilt yet again in 1927.
+<br><br><div style="text-align: center;"><img src="images/script15-c.jpg" max-width="80%"><br>Marlow lock-keeper's house<br>&#169; Mike Jackson</div>
+<br>Lock keepers are responsible for supervising and maintaining the lock. They are also responsible for operating the weir to control the river water level both making it safe for boats and avoiding flooding. Their job is considerably less onerous today than it was in the past. Powered sluices were introduced in the 1960s and lock gates can be opened and closed simply by pressing a button. 
+
+<br><br>
+The Environment Agency, which is responsible for the locks, no longer thinks that it necessary to have a lock keeper living on site. In 2008 they proposed that some lock keepers&#39; houses should be sold, including this one at Marlow.  However a campaign led to an early day motion in the House of Commons and the Environment Agency was persuaded to reconsider. 
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(15);
+  changescriptpage(15);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions15" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader15"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent15">
+<span style="font-weight: bold; ">Directions to stop 16</span>
+<br><br>When you are ready retrace your steps over the arched bridge and turn right along the lane. Go past the entrance to the modern housing development on the site of Marlow Mill. After a short distance the road bends to the left and shortly after is a footpath on the right hand side signposted Thames Path. Follow this path to the river. Continue along this path until you reach a grassy field just before the large road bridge.
+<br><br>
+Note: The lock is the end of the short version of the walk and you can retrace your steps back into the town centre. 
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map3.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(15);
+  changedirectionspage(15);
+</script>
+ </div>
+ 
+             <!-- Script 16 --> 
+ <div data-role="page" id="script16" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader16"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent16">
+<span style="font-weight: bold; ">16. Flooding and football</span>
+<br>Gossmore Park
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track16.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track16.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>You are now standing in Gossmore Park and in front of you is the large road bridge that carries the Marlow bypass over the Thames. The opening of the bypass relieved Marlow town centre of a lot of traffic and has helped to preserve the character of the town.  
+<br><br><div style="text-align: center;"><img src="images/script16-a.jpg" max-width="80%"><br>Marlow bypass bridge<br>&#169; Mike Jackson</div>
+<br>Notice that there are tunnels under the road and the spans of the bridge are very wide. This is to make sure that the bridge and the bypass do not become a barrier and cause flooding to the town. Marlow is built on the Thames floodplain and has been subjected to many floods over the years. Today there are controls on development in areas prone to flooding like this. A plan has also been developed to raise the level of the park to protect houses that have already been built but it has been shelved for the time being due to lack of funds.
+<br><br><div style="text-align: center;"><img src="images/script16-b.jpg" max-width="80%"><br>Flood relief tunnels<br>&#169; Mike Jackson</div>
+<br>Floodplains may not provide land suitable for building but they can provide flat ground suitable for sports. Today Gossmore Park has football pitches but long before the bridge was built this area was used for a different leisure activity. It was a racecourse. Horse races were held here as long ago as 1752 shortly after the Jockey Club had been formed. Horses were raced along the river downstream for about a mile and back again. It was quite a high society occasion in those days and a fascinating account was provided by a young lady in The London Magazine. 
+<br><br><div style="text-align: center;"><img src="images/script16-c.jpg" max-width="80%"><br>Advertisement for Marlow Races (1827)<br>By kind permission of The Marlow Society</div>
+<br>She tells us that on the bank there was &#34; a most crowded assembly of country lasses, all dressed out with their best gowns, red, green, yellow and blue, presented in the sun, then shining extremely bright, such a beautiful appearance of cheerful countenances, as rendered it the most joyous spectacle I had ever seen.&#34; 
+<br><br>
+The programme for 1840 shows that the races were held in August over two days and were followed by a Ball at the Town Hall.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(16);
+  changescriptpage(16);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions16" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader16"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="directionscontent16">
+<span style="font-weight: bold; ">Directions to stop 17</span>
+<br><br>Continue along the riverside path and under the road bridge. As the path and river start to bend around to the left stop in a place where you have a good view of the Longridge Activity Centre on the opposite bank.
+<br><br><hr style="width: 100%; height: 2px;">
+
+<br><div style="text-align: center;"><img src="images/map4.png"  width="480px" height="320px" max-width="80%"><br></div>
+
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(16);
+  changedirectionspage(16);
+</script>
+ </div>
+ 
+             <!-- Script 17 --> 
+ <div data-role="page" id="script17" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader17"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent17">
+<span style="font-weight: bold; ">17. Journey&#39;s End</span>
+<br>Opposite Longridge Activity Centre
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track17.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track17.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Here is a spot where the riverside has been influenced by an author and not the other way round. Across the river you will be able to see the boats of the Longridge Activity Centre. Today this is owned by a charity which provides a variety of water and land based activities for young people.  The land here was originally bought in 1976 by the Scout Association with a legacy from the playwright RC Sherriff. He did not live around here but he does have a strong connection with the Thames. Sherriff was severely wounded in the First World War at Passchendaele but recovered and became an accomplished rower at Kingston Rowing Club. It was then that he first started writing plays to raise money for a new boat. 
+<br><br><div style="text-align: center;"><img src="images/script17-a.jpg" max-width="80%"><br>English playwright R.C.Sherriff<br>Wikimedia Commons</div>
+<br>His most famous work is &#39;Journey&#39;s End&#39; which is a play based on his experiences in the trenches during the First World War. The Scouts own the rights to this play. Sherriff wrote many plays and he also wrote film scripts including &#39;Goodbye Mr Chips&#39; and &#39;The Dam Busters&#39;.
+<br><br><div style="text-align: center;"><img src="images/script17-b.jpg" max-width="80%"><br>Longridge Activity Centre<br>&#169;  Mike Jackson</div>
+<br>You might notice that the activity centre is sheltered by one of the Thames&#39; many islands. The scouts named this one Sherriff Island after their benefactor. There are a lot of islands like this in the Thames. Many are long and thin and are created by the accumulation of silt. They are often called &#39;aits&#39; or &#39;eyots&#39; (pronounced aights) which is an Old English name for an island.  
+
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(17);
+  changescriptpage(17);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions17" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader17"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent17">
+<span style="font-weight: bold; ">Directions to stop 18</span>
+<br><br>Continue along the riverside path until you are opposite a large house that looks like a castle.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map5.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(17);
+  changedirectionspage(17);
+</script>
+ </div> 
+ 
+             <!-- Script 18 --> 
+ <div data-role="page" id="script18" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader18"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent18">
+<span style="font-weight: bold; ">18. A cardboard castle</span>
+<br>Riverbank opposite Quarry Wood Hall
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track18.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track18.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Kings and Queens have chosen to build many of their palaces on rivers. On the Thames for example you will find The Tower of London, Hampton Court and Windsor Castle. The steep and wooded bank opposite is Quarry Wood and as its name suggests there was a quarry here in medieval times. Stone blocks from here were transported down river in 1344 to build Windsor Castle. These were soft chalk blocks and would have been used for the castle&#39;s internal walls that would not be exposed to the weather.
+<br><br><div style="text-align: center;"><img src="images/script18-a.jpg" max-width="80%"><br>Spectacular riverside house<br>&#169;  Mike Jackson</div>
+<br>It's not just the Royalty that likes to live by rivers. The beautiful settings that they provide have always attracted wealthy people to build houses along the banks. Along this walk you will already have seen some big houses by the river. Often such houses are designed by the original owners and are statements of their own personalities. 
+<br><br><div style="text-align: center;"><img src="images/script18-b.jpg" max-width="80%"><br>The cardboard castle<br>&#169;  Mike Jackson</div>
+<br>You can&#39;t have failed to see the unusual Edwardian Gothic house opposite which locals know as the &#39;cardboard castle&#39;. It was designed by Aubrey Beardsley who was a controversial Art Nouveau artist. Dame Nellie Melba once lived here; she was the Australian soprano who gave her name to the Peach Melba ice-cream dessert. Another occupant of the 1920s was American Steel Heiress, Laura Corrigan. She was a vivacious social climber and a renowned hostess who entertained many of the personalities of the time. 
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(18);
+  changescriptpage(18);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions18" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader18"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent18">
+<span style="font-weight: bold; ">Directions to stop 19</span>
+<br><br>Continue along the riverside path for 200 metres or so until you see the pitches of Marlow Rugby Club on your left. Stop at one of the benches by the river.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map5.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(18);
+  changedirectionspage(18);
+</script>
+ </div>  
+ 
+             <!-- Script 19 --> 
+ <div data-role="page" id="script19" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader19"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent19">
+<span style="font-weight: bold; ">19. Wild woods</span>
+<br>Bench by the river
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track19.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track19.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+This part of the river has featured in two very well known books. Jerome K Jerome described it in &#39;Three Men in a Boat&#39; with these words: 
+<br><br>
+&#34;Down to Cookham, past the Quarry Woods and the meadows, is a lovely reach. <br>
+Dear old Quarry Woods! with your narrow, climbing paths, and little winding glades, <br>
+how scented to this hour you seem with memories of sunny summer days! <br>
+How haunted are your shadowy vistas with the ghosts of laughing faces!<br>
+how from your whispering leaves there softly fall the voices of long ago!&#34;
+<br><br><div style="text-align: center;"><img src="images/script19-b.jpg" max-width="80%"><br>Mole lost in the Wild Wood<br>Illustration by Paul Bransom<br>from Wind in the Willows<br>(Creative Commons License)</div>
+<br><br>
+While this may be the first time that you have seen this stretch of the Thames, it is in fact very well-known to thousands upon thousands of children. This is the world of Mole, Ratty, Toad and Badger in Kenneth Graham&#39;s famous book &#39;Wind in the Willows&#39;. He grew up close by in Cookham Dean and knew this place well. In the stories Quarry Wood is Wild Wood where Badger lived and where Mole got lost and frightened when he ignored Ratty&#39;s advice and set out to find him. In the book Graham also describes Mole&#39;s his first sight of the river in these words:
+<br><br>&#34;.. suddenly he stood by the edge of a full-fed river. Never in his life had he seen a river before &#45; this sleek, sinuous, full&#45;bodied animal, chasing and chuckling, gripping things with a gurgle and leaving them with a laugh, to fling itself on fresh playmates that shook themselves free, and were caught and held again. All was a-shake and a&#45;shiver&#45;glints and gleams and sparkles, rustle and swirl, chatter and bubble. The Mole was bewitched, entranced, fascinated.&#34;
+<br><br>
+Shortly afterwards Mole meets Ratty who explains in these famous words: 
+<br><br>
+&#34;Believe me, my young friend, there is nothing&#45;absolutely nothing&#45;half so much worth doing as simply messing about in boats.&#34;
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(19);
+  changescriptpage(19);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions19" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader19"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent19">
+<span style="font-weight: bold; ">Directions to stop 20</span>
+<br><br>Continue along the riverside path and through a kissing gate into a field. Continue along the path until you reach another kissing gate. Go through the gate and follow the path across the next field. Stop just before the next (i.e. third) kissing gate. 
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map6.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(19);
+  changedirectionspage(19);
+</script>
+ </div> 
+ 
+             <!-- Script 20 --> 
+ <div data-role="page" id="script20" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader20"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent20">
+<span style="font-weight: bold; ">20. Sinister circles</span>
+<br>Third kissing gate
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track20.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track20.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+On aerial photos you can clearly see some unnatural circular shapes in the fields here. In winter when the grass is short you may be able to make out shallow depressions if you walk into the field away from the river. 
+<br><br><div style="text-align: center;"><img src="images/script20-a.jpg" max-width="80%"><br>Aerial view of the bomb craters<br>Google Maps</div>
+<br>These circles have a sinister origin and illustrate another use that man has made of the River Thames. They are the remains of bomb craters from the Blitz in the Second World War. German bombers had various forms of navigation but they also used the distinctive shape of the Thames to help them find their way to London.
+<br><br><div style="text-align: center;"><img src="images/script20-b.jpg" max-width="80%"><br>A Dornier DO 17 Z airplane drops bombs<br>Wikimedia commons</div>
+<br>It is unlikely that Marlow was a target for the bombers and it is thought that the bombs may have been jettisoned here after a failed raid. Some reports say they were being chased by British fighter aircraft. The bombers would have wanted to lighten their load before their return journey.
+<br><br>
+The bombs did little damage but they did have an interesting consequence for one leisure activity. Some of the bombs were jettisoned upstream from here just to the west of Marlow. One of them exploded in the river near Bisham. No one was killed but it did kill all the fish in the river. That put an end to fishing until the river had had been restocked!   
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(20);
+  changescriptpage(20);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions20" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader20"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent20">
+<span style="font-weight: bold; ">Directions to stop 21</span>
+<br><br>Go through the kissing gate and continue along the riverside path through two more kissing gates. At the third gate is a sign about Spade Oak Meadow which is beyond the gate. Do not go through this gate but take the path to the left alongside a hedge. Go through the next gate and cross the railway line with care. Exit through the next gate and take the path to the right. Stop by the lake.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map7.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(20);
+  changedirectionspage(20);
+</script>
+ </div> 
+
+             <!-- Script 21 --> 
+ <div data-role="page" id="script21" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader21"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent21">
+<span style="font-weight: bold; ">21. Gritty hollows</span>
+<br>Beside Spade Oak Lake
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track21.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track21.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+Between the Ice Ages the Thames was a fast flowing river carrying large volumes of sediment to the sea. As the ice ages came to an end so the river slowed and sediments were deposited in the flood plain. Some of these sediments were laid down here. Fast forward to the twentieth century and humans found a use for these sediments. Spake Oak Lake is one of seven lakes created here by gravel and sand extraction. Extraction began here in 1966 by Folley Brothers on 33 acres of farmland belonging to Spade Oak Farm. At that time gravel was in great demand for road construction. Sand and gravel from here were used to build parts of the M4 and the M40.
+<br><br><div style="text-align: center;"><img src="images/script21-a.jpg" max-width="80%"><br>Lafarge gravel works at Spade Oak Lake<br>&#169;  Mike Jackson</div>
+<br>The site is owned and operated today by Lafarge Aggregates but they no longer extract gravel from here. Instead the site is used to wash and store gravel dug elsewhere. For example, the largest man-made river project in Britain was the Jubilee River constructed at the end of the 1990s to protect Maidenhead, Windsor and Eton from flooding. Aggregates extracted from that project were brought here. As you continue walking around the lake look out for the gravel workings just visible through the trees on the opposite side.
+<br><br><div style="text-align: center;"><img src="images/script21-b.jpg" max-width="80%"><br>Flocks of birds at Spade Oak Lake in winter<br>&#169;  Mike Jackson</div>
+<br>The lakes left by gravel extraction are now devoted to nature and to leisure activities. Lafarge Aggregates and Little Marlow Parish Council worked together on a Millennium project to turn Spade Oak Lake into a nature reserve. A footpath now circles the lake and reeds and other plants have been encouraged to grow in the shallow margins. 
+<br><br><div style="text-align: center;"><img src="images/script21-c.jpg" max-width="80%"><br>A peaceful fishing spot<br>&#169;  Mike Jackson</div>
+<br>The lake is now a popular place for fishermen and birders alike. It supports a wide variety of birds which you can see all year round. However the greatest numbers can be seen in the winter months when there are large numbers of ducks and gulls. It is quietest in summertime but you will still find herons, kingfishers and great-crested grebes amongst many others.
+<br><br>
+For those who enjoy more active pursuits three of the other lakes are used by Westhorpe Water Sports Centre for a variety of activities which include open water swimming, water skiing and jet skiing. 
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(21);
+  changescriptpage(21);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions21" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader21"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent21">
+<span style="font-weight: bold; ">Directions to stop 22</span>
+<br><br>Follow the footpath around the lake keeping the lake on your left and the railway line on your right. After about 500 metres there is a footpath to the right. Take this path over the small bridge, through the gate and across a field. Go through the gate onto the lane. Stop outside Old Thatch Cottage opposite. 
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map7.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(21);
+  changedirectionspage(21);
+</script>
+ </div>  
+
+             <!-- Script 22 --> 
+ <div data-role="page" id="script22" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader22"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent22">
+<span style="font-weight: bold; ">22. The mysteries of Peterswood</span>
+<br>Old Thatch Cottage, Coldmoorholme Lane
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track22.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track22.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+We have now reached the edge of the small town of Bourne End. The house here is Old Thatch Cottage which dates back to the seventeenth century. Today it is a private house set in gardens which are open to the public on summer weekends but it was once an inn called the Rose and Crown. Dick Turpin is reputed to have stayed here with his horse Black Bess. It also has a more recent claim to fame. In 1929 the children&#39;s author Enid Blyton came to live here. She described the house as &#34;perfect both outside and in&#34; and &#34;like a house in a fairy tale&#34;.
+<br><br><div style="text-align: center;"><img src="images/script22-a.jpg" max-width="80%"><br>Old Thatch Cottage<br>&#169;  Mike Jackson</div>
+<br>The landscape around here was to be a big influence on Enid Blyton&#39;s writing. While she lived here she wrote 16 books know as the Old Thatch Series, one of which was called &#39;Tales of Old Thatch&#39;. 
+Enid Blyton later moved to Green Hedges in the nearby town of Beaconsfield and it was there that she wrote her Mystery Series of books. Anyone who has read these will know that they are about five children called Fatty, Larry, Daisy, Pip and Bets and a dog called Buster. They are the five Find-Outers and they have fun investigating crimes in a riverside village called Peterswood. This is the fictional name Enid Blyton used for Bourne End where we are now. 
+<br><br><div style="text-align: center;"><img src="images/script22-b.jpg" width="140"><br>Tales of Old Thatch book cover</div>
+<br>It is possible to identify many places round here from the stories. The river and railway appear frequently and the pub next door featured in one of the books. It is now the Spade Oak but it was once called Ye Ferry Hotel. In 1895 it was advertised as &#34;a riverside hotel for boating, fishing and launch parties&#34;. 
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(22);
+  changescriptpage(22);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions22" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader22"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent22">
+<span style="font-weight: bold; ">Directions to stop 23</span>
+<br><br>Old Thatch Gardens are open from May to August on Wednesday, Saturday and Sunday afternoons and are well worth a visit (&#163;4 adults; &#163;1 children). You may wish to stop at the Spade Oak pub for refreshments or food. When you are ready follow the lane past the pub, cross the railway carefully and stop by the river.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map8.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(22);
+  changedirectionspage(22);
+</script>
+ </div>  
+ 
+             <!-- Script 23 --> 
+ <div data-role="page" id="script23" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader23"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent23">
+<span style="font-weight: bold; ">23. Horse power</span>
+<br>Former site of Spade Oak Wharf
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track23.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track23.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+You are now back by the river and we will shortly be continuing downstream towards Bourne End Marina which you can see in the distance. There was a wharf here as long ago as the Middle Ages when it was run by the Benedictine Nuns from the Priory at Little Marlow.
+<br><br><div style="text-align: center;"><img src="images/script23-a.jpg" max-width="80%"><br>Ferry Cottage at Spade Oak<br>&#169;  Mike Jackson</div>
+<br>This is also one of those places where the towpath switched banks but it was not until 1824 that the Thames Commissioners provided a horse ferry. Mr Rose of Spade Oak Wharf had the exclusive right to tow barges from here to Marlow. He even made a charge to barge owners who used their own horses. The ferry was located about 50 metres upstream and crossed to the white cottage on the opposite bank. 
+<br><br><div style="text-align: center;"><img src="images/script23-b.jpg" max-width="80%"><br>Remains of Spade Oak ferry landing stage<br>&#169;  Mike Jackson</div>
+<br>Across the river is a large flat meadow called Cock Marsh. This is on the inside of the river as it sweeps round a large bend. The marsh has been used for grazing animals since medieval times but a number of burial mounds from the Bronze Age are evidence of even earlier use. Cock Marsh now belongs to the National Trust and is popular place for people to walk and enjoy the riverside. The ferry was still in operation when Enid Blyton was writing in the 1930s and it features in some of her books. It was particularly popular at weekends and Bank Holidays when thousands of people would use it to reach Cock Marsh.  
+<br><br>
+<br>The ferry became uneconomic and was discontinued in 1956. It was then almost 40 years before the towpaths were linked together again to create the Thames Path National Trail. This was achieved by attaching a footbridge to the side of the railway bridge in Bourne End and extending the path on this side of the river.
+<br><br><div style="text-align: center;"><img src="images/script23-c.jpg" max-width="80%"><br>1947 flood marker<br>&#169;  Mike Jackson</div>
+<br>Before we move on take a look at the sign post at the entrance to Spade Oak Meadow. It has a flood marker which shows how high the river reached in 1947. As we continue our walk you will see quite a lot of houses built by the river, some very recently. Look closely and you will see that most of them have an empty basement. The ground floor is raised several feet; high enough they hope to avoid being flooded.     
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(23);
+  changescriptpage(23);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions23" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader23"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent23">
+<span style="font-weight: bold; ">Directions to stop 24</span>
+<br><br>Follow the riverside path downstream (with the river on your right). Follow the path as it goes into the grounds of Upper Thames Sailing Club. Stop outside the club house.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map8.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(23);
+  changedirectionspage(23);
+</script>
+ </div>  
+ 
+             <!-- Script 24 --> 
+ <div data-role="page" id="script24" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader24"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>	
+  </div>
+
+ <div data-role=content id="scriptcontent24">
+<span style="font-weight: bold; ">24. A gentleman&#39;s yacht</span>
+<br>Upper Thames Sailing Club
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track24.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track24.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+The Victorian passion for leisure activities on the Thames went beyond rowing. The Upper Thames Sailing Club here dates back to 1884. Three years later it was Queen Victoria&#39;s Golden Jubilee and to mark the occasion the club founded a sailing regatta. The regatta continues to this day. Bourne End Week takes place each year at the beginning of June. In times gone by it was social event that ranked alongside Henley Regatta and Cowes week. The Regatta is now sponsored by Lafarge Aggregates who, as we saw earlier, are the operator of the gravel pit.
+<br><br><div style="text-align: center;"><img src="images/script24-a.jpg" max-width="80%"><br>Upper Thames Sailing Club<br>&#169;  Mike Jackson</div>
+<br>The river is wide here which is good for sailing. Today you will see a variety of small dinghies being sailed including Toppers, Wayfarers, Merlin Rockets and Fireflies. Sailing takes place on Sundays for most of the year as well as on Wednesday evenings and Saturday afternoons in the summer.
+<br><br><div style="text-align: center;"><img src="images/script24-b.jpg" max-width="80%"><br>Figurehead outside Upper Thames Sailing Club<br>&#169;  Mike Jackson</div>
+<br>A highlight of Bourne End Week is to see the races of the historic A&#45;Rater class. These were designed over a hundred years ago as a gentleman&#39;s yacht specifically for river racing. They are large boats which are sailed by a crew of three and have extremely tall masts. With a massive area of sail they are able to catch even the lightest of river breezes.  
+<br><br><div style="text-align: center;"><img src="images/script24-c.jpg" max-width="80%"><br>An A-Rater on the water near Bourne End<br>&#169;  Mike Jackson</div>
+<br>The A-Rater&#39;s home is the Thames Sailing Club in Surbiton but their National Championship is held here. On the last day of the Regatta the A&#45;Raters compete for the Queen&#39;s Cup in the most prestigious race in their calendar. This cup was originally presented by Queen Victoria herself in 1893.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(24);
+  changescriptpage(24);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions24" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader24"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent24">
+<span style="font-weight: bold; ">Directions to stop 25</span>
+<br><br>Leave the sailing club grounds through the gate and continue along the riverside path past Bourne End Marina. Go past the OTT Restaurant and Bar and continue following the Thames Path. Just after the end of the marina is a small grassy area with benches called Dinnie&#39;s Riverside. Stop there.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map9.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(24);
+  changedirectionspage(24);
+</script>
+ </div>  
+ 
+             <!-- Script 25 --> 
+ <div data-role="page" id="script25" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader25"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent25">
+<span style="font-weight: bold; ">25. Gunpowder</span>
+<br>Dinnie&#39;s Riverside near Bourne End Marina
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track25.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track25.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+The wharf here at Bourne End would once have been another busy place for loading and unloading goods to be transported along the river. Today as you can see it is a marina for recreational craft.
+<br><br><div style="text-align: center;"><img src="images/script25-a.jpg" max-width="80%"><br>Bourne End marina<br>&#169;  Mike Jackson</div>
+<br>Bourne End is located on the River Wye which flows from High Wycombe and enters the Thames just beyond the railway bridge. The River Wye once provided water power for a great number of mills. At the time of the Domesday Book there were 20 mills in just 8 miles between West Wycombe and Bourne End. By 1815 there were 34. 
+<br><br>
+<br>We heard earlier that High Wycombe was a great corn market and most of the mills were used for grinding corn or making paper. However Jackson&#39;s mill in Bourne End had a different use at the time of the Civil War. It produced gunpowder. Gunpowder is made by grinding sulphur, charcoal and saltpetre separately and then combining them in the correct proportions. Here again the Thames had a roll to play. Sulphur and saltpetre were imported into London by the East India Company and brought upriver to Bourne end by barge. The mill subsequently became Jackson&#39;s paper mill but many still called it Gunpowder Mill. 
+<br><br><div style="text-align: center;"><img src="images/script25-b.jpg" max-width="80%"><br>The Bounty<br>&#169;  Mike Jackson</div>
+Across the river you will see a pub called the Bounty. This quirky pub which usually flies the skull and crossbones cannot reached by road. You can arrive by boat or else you must walk across the railway bridge. The Bounty stands on the site of the Quarry Hotel which was destroyed by a fire in 1938. It was built in the late Victorian era to cater for the growing numbers of people who came to enjoy the riverside. It was served by a ferry and the hotel gained an excellent reputation for its cuisine. It also had a landing strip on Cock Marsh for light aircraft and the famous aviation pioneer Amy Johnson once used it. 
+<br><br><div style="text-align: center;"><img src="images/script25-c.jpg" width="140"><br>Amy Johnson<br>Wikimedia commons</div>
+<br>She of course was the first woman to fly solo from Britain to Australia. Sadly the Thames was to play a role in her death. She drowned in the Thames estuary after bailing out of a ferry flight during bad weather.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(25);
+  changescriptpage(25);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions25" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader25"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent25">
+<span style="font-weight: bold; ">Directions to stop 26</span>
+<br><br>Leave the little park and continue along the riverside path which is narrow in places as it passes between garden fences. Immediately after going under the railway bridge take the steps on the left and follow the path with the railway line on your left and houses on your right. Go through the car park and stop at Bourne End station. 
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map9.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(25);
+  changedirectionspage(25);
+</script> 
+ </div>  
+ 
+             <!-- Script 26 --> 
+ <div data-role="page" id="script26" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader26"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+
+ <div data-role=content id="scriptcontent26">
+<span style="font-weight: bold; ">26. A metal donkey</span>
+<br>Bourne End railway station
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track26.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track26.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+The Great Western Railway between London and Bristol opened in 1838. The nearest stop to here was Reading but a branch was opened between Maidenhead and High Wycombe sixteen years later. Bourne End was a stop on this line but Marlow was left out. Its river trade could not match rail and the town was already in decline. Some people liked having a quiet town but most did not. So a group of local people created the Great Marlow Railway Company and campaigned for a new line. 
+<br><br><div style="text-align: center;"><img src="images/script26-a.jpg" max-width="80%"><br>Marlow to Bourne end railway track<br>&#169;  Mike Jackson</div>
+<br>The branch line from Marlow to Bourne End was eventually opened in 1873 and became known as the Marlow Donkey. It's not clear where the name came from but some people believe it was the affectionate name for the steam locomotive that operated the line. It took over from mules and donkeys that previously hauled goods along this route.  You will still find a pub called the Marlow Donkey by the station in Marlow.
+<br><br><div style="text-align: center;"><img src="images/script26-b.jpg" max-width="80%"><br>The Marlow Donkey (1955)<br>By kind permission of the Bucks Free Press</div>
+<br>With the arrival of the Donkey Marlow was connected by rail to both High Wycombe and Maidenhead and on to London. It brought a welcome boost to trade. Mills re&#45;opened, new houses were built and the character of Marlow started to change. For most of the Victorian period Marlow had a population of around 4,000 but with the arrival of the Marlow Donkey it increased to over 5,500. Instead of river trade Marlow&#39;s economy came to depend on the mills, small factories and the brewery. In fact the brewery was to become the town&#39;s biggest employer. At one time it was said that Marlow had just two industries &#45; making beer and drinking it! 
+<br><br><div style="text-align: center;"><img src="images/script26-c.jpg" max-width="80%"><br>The Marlow today<br>&#169;  Mike Jackson</div>
+<br>Marlow mills stopped production the 1930s and the brewery eventually closed in 1988. A small industrial park was built to provide employment but it was improved roads and the advent of the motorway network that were to have the biggest impact on the town. 
+<br><br>
+As you have already seen Marlow is an attractive place and many people now choose to settle there and commute out of the town to work. I confess to having been one of those. The population grew rapidly from 1950, and is now around 18,000.
+
+
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(26);
+  changescriptpage(26);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions26" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader26"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent26">
+<span style="font-weight: bold; ">Directions to stop 27</span>
+<br><br>Remain at Bourne End station.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map9.png"  width="480px" height="320px" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(26);
+  changedirectionspage(26);
+</script>
+ </div> 
+ 
+             <!-- Script 27 --> 
+ <div data-role="page" id="script27" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="scriptheader27"  data-tap-toggle="false">
+    <h1>Walk script</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a></a>	
+  </div>
+
+ <div data-role=content id="scriptcontent27">
+<span style="font-weight: bold; ">27. The story of a riverside town</span>
+<br>Bourne End railway station
+<br><br>Audio script (click to play)<br><br>
+<audio controls="controls">
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track27.ogg" type="audio/ogg" />
+  <source src="http://www.jacksononline.co.uk/marlow/audio/track27.mp3" type="audio/mpeg" />
+Your browser does not support the audio element.
+</audio>
+<br><br>
+We have reached the end of our walk. I hope you have enjoyed this beautiful stretch of river and finding out how its physical characteristics have influenced people and their activities. I set out to tell you a story of the river through three &#39;Ls&#39;: livelihoods, leisure and literature. 
+<br><br><div style="text-align: center;"><img src="images/script27-a.jpg" max-width="80%"><br>Feeding the swan and ducks at Marlow<br>&#169;  Mike Jackson</div>
+<br>First of all you may have been surprised to find out that Marlow was once a poor riverside port. We learned about women spending long hours bent over their lace making pillows to supplement their income, saw where corn and beech wood from the surrounding country was loaded on to barges, heard of their dangerous passage through flashlocks, seen where a thimble mill once stood, learned about locks and bridges and heard the strange tale of &#39;puppy-pie&#39;.
+<br><br>
+Second we discovered how the Thames was a playground for the upper social classes in Victorian times. We have seen where horse racing once took place and where sailing and rowing regattas still do. Along the way we have seen the wide variety of leisure activities that now take place on the river and on its banks from sailing and rowing to water skiing and angling.
+
+<br><br><div style="text-align: center;"><img src="images/script27-b.jpg" max-width="80%"><br>Marlow wier with the bridge behind<br>&#169;  Mike Jackson</div>
+<br>Third we found out about the famous authors that came here to write and heard a variety of poetry and prose influenced by the river. We heard some fishy tales; passed the Wild Wood where Badger lives; and solved the mystery of Peterswood.
+<br><br>
+All that is without mentioning swans, eels and a donkey; bomb craters, gravel pits and flood tunnels - and a cardboard castle!
+<br><br>
+Thank you for coming to learn more about my home town. I hope you have enjoyed the walk and will want to come again. Let me leave you with one final verse from &#34;A Marlow Madrigal&#34; by J Ashby-Sterry:
+<br><br>
+<br>So when, no longer, London life <br>
+You feel you can endure;<br>
+Just quit its noise, its whirl, its strife,<br>
+And try the &#34;Marlow-cure&#34; !<br>
+You&#39;ll smooth the wrinkles on your brow<br>
+And scare away each frown &#45;<br>
+Feel young again once more, I vow,<br>
+At quaint old Marlow town !
+<br><br><div style="text-align: center;"><img src="images/script27-c.jpg"  width="480px" height="320px" max-width="80%"><br>A picturesque scene on the Thames at Marlow<br>&#169;  Mike Jackson</div>
+  </div>
+<script type="text/javascript"> 
+  addscriptfooter(27);
+  changescriptpage(27);
+</script>
+</div><!-- /page -->  
+
+<div data-role="page" id="directions27" data-add-back-btn=false data-theme="b">
+  <div data-role="header" id="directionsheader27"  data-tap-toggle="false">
+    <h1>Directions</h1>
+	<a href="#script" class="ui-btn-left" data-direction="reverse">Index</a>
+	<a href="#home" class="ui-btn-right" data-icon="home" data-transition="slide" data-direction="reverse">Home</a>
+  </div>
+ <div data-role=content id="directionscontent27">
+<span style="font-weight: bold; ">Directions</span>
+<br><br>From here you can take the short train ride back to Marlow. Trains are once an hour. If you are a keen walker you may wish to walk back to Marlow. Retrace your steps back to the river and cross the railway bridge. From there follow the path over Winter Hill from where there are spectacular views of the river.
+<br><br><hr style="width: 100%; height: 2px;">
+<br><div style="text-align: center;"><img src="images/map10.png" max-width="80%"><br></div>
+  </div>
+<script type="text/javascript"> 
+  adddirectionsfooter(27);
+  changedirectionspage(27);
+</script>
+ </div> 
+ 
+</body>
+</html>
