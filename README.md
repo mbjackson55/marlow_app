@@ -1,4 +1,4 @@
 marlow_app
 ==========
 
-Discovering Britaim Marlow walk app
+Discovering Britain Marlow walk app
